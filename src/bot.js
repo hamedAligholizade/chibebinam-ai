@@ -121,6 +121,13 @@ async function getSuggestion(ctx, userId) {
     try {
         const suggestion = await ollama.getSuggestion(state.answers);
         
+        // Save user answers
+        userManager.saveUser({
+            id: userId,
+            answers: state.answers,
+            last_suggestion: new Date().toISOString()
+        });
+        
         ctx.reply(suggestion, {
             reply_markup: {
                 keyboard: [['شروع دوباره']],
@@ -139,6 +146,66 @@ bot.hears('شروع دوباره', (ctx) => {
     const userId = ctx.from.id;
     userStates.set(userId, initUserState(userId));
     askQuestion(ctx, userId);
+});
+
+// Add admin commands
+bot.command('stats', async (ctx) => {
+    const adminUserId = parseInt(process.env.ADMIN_USER_ID);
+    
+    if (ctx.from.id !== adminUserId) {
+        return;
+    }
+
+    const stats = userManager.getStatistics();
+    const answerStats = userManager.getUserAnswerStats();
+
+    const message = `📊 آمار کاربران:
+
+👥 تعداد کل کاربران: ${stats.totalUsers}
+✅ کاربران فعال:
+   • 24 ساعت گذشته: ${stats.activeLastDay}
+   • هفته گذشته: ${stats.activeLastWeek}
+   • ماه گذشته: ${stats.activeLastMonth}
+
+🌍 توزیع زبان:
+${Object.entries(stats.languageDistribution)
+    .map(([lang, count]) => `   • ${lang}: ${count}`)
+    .join('\n')}
+
+📈 ثبت نام ماهانه:
+${Object.entries(stats.usersByMonth)
+    .sort()
+    .map(([month, count]) => `   • ${month}: ${count}`)
+    .join('\n')}
+
+🎯 آمار پاسخ‌ها:
+تعداد کل تعاملات: ${answerStats.totalInteractions}
+
+ژانرهای محبوب:
+${Object.entries(answerStats.genrePreferences)
+    .sort((a, b) => b[1] - a[1])
+    .map(([genre, count]) => `   • ${genre}: ${count}`)
+    .join('\n')}
+
+ترجیح طول محتوا:
+${Object.entries(answerStats.lengthPreferences)
+    .sort((a, b) => b[1] - a[1])
+    .map(([length, count]) => `   • ${length}: ${count}`)
+    .join('\n')}
+
+حال و هوای کاربران:
+${Object.entries(answerStats.moodPreferences)
+    .sort((a, b) => b[1] - a[1])
+    .map(([mood, count]) => `   • ${mood}: ${count}`)
+    .join('\n')}`;
+
+    ctx.reply(message);
+});
+
+// Update user activity on any interaction
+bot.on('text', async (ctx, next) => {
+    userManager.updateUserActivity(ctx.from.id);
+    await next();
 });
 
 bot.launch().then(() => {

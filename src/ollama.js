@@ -19,7 +19,7 @@ class OllamaClient {
 
         try {
             const response = await axios.post(`${this.host}/api/generate`, {
-                model: 'llama2',
+                model: 'llama3',
                 prompt: prompt,
                 stream: false
             });
@@ -32,4 +32,4 @@ class OllamaClient {
     }
 }
 
-module.exports = OllamaClient; 
+module.exports = OllamaClient;
