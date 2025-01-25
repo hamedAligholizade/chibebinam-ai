@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    depends_on:
+      - ollama
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - OLLAMA_HOST=${OLLAMA_HOST}
+      - ADMIN_USER_ID=${ADMIN_USER_ID}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+
+volumes:
+  ollama_data: 
